@@ -1,0 +1,11 @@
+source:
+  name: "local storage"
+  type: "file"
+  settings:
+    filename: "data1.json"
+
+sink:
+  type: "elastic_search"
+  context:
+    addresses:
+      - "http://localhost:9200"

@@ -1,0 +1,10 @@
+source:
+  name: "Metric"
+  type: "metric"
+  settings:
+    total_entities: 10
+
+sink:
+  type: "file"
+  context:
+    filename: "data2.json"

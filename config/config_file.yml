@@ -1,0 +1,10 @@
+source:
+  name: "local storage"
+  type: "file"
+  settings:
+    filename: "data1.json"
+
+sink:
+  type: "file"
+  context:
+    filename: "data2.json"

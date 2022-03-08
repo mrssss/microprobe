@@ -1,0 +1,18 @@
+source:
+  name: "Metric"
+  type: "metric"
+  settings:
+    total_entities: 50
+
+sink:
+  type: "elastic_search"
+  context:
+    addresses:
+      - "http://localhost:9200"
+
+client:
+  type: "elastic_search"
+  result: "res.csv"
+  context:
+    addresses:
+      - "http://localhost:9200"
