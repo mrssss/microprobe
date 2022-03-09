@@ -61,17 +61,18 @@ func (esc *ElasticSearchClient) Process() {
 		query := map[string]interface{}{
 			"query": map[string]interface{}{
 				"bool": map[string]interface{}{
-					"must": []interface{}{
-						0: map[string]interface{}{
+					"must": map[string]interface{}{
+						"range": map[string]interface{}{
+							"timestamp": map[string]string{
+								"gte": "now-1m",
+								"lt":  "now",
+							},
+						},
+					},
+					"filter": map[string]interface{}{
+						"range": map[string]interface{}{
 							"humidity": map[string]interface{}{
 								"gte": 100,
-							}},
-						1: map[string]interface{}{
-							"range": map[string]interface{}{
-								"timestamp": map[string]string{
-									"gte": "now-1m",
-									"lt":  "now",
-								},
 							},
 						},
 					},
