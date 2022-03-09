@@ -63,8 +63,8 @@ func (esc *ElasticSearchClient) Process() {
 				"bool": map[string]interface{}{
 					"must": []interface{}{
 						0: map[string]interface{}{
-							"match": map[string]interface{}{
-								"region": "alert",
+							"humidity": map[string]interface{}{
+								"gte": 100,
 							}},
 						1: map[string]interface{}{
 							"range": map[string]interface{}{

@@ -31,9 +31,9 @@ var last_alert = time.Now()
 func generateMetric(ts time.Time, devIndex int, region string, location LatLon) Metric {
 	source := rand.NewSource(time.Now().UnixNano())
 	r := rand.New(source)
-
+	humidity := uint16(r.Uint32()) % uint16(100)
 	if time.Now().Sub(last_alert).Seconds() > 1 {
-		region = "alert"
+		humidity = 200
 		last_alert = time.Now()
 	}
 
@@ -45,7 +45,7 @@ func generateMetric(ts time.Time, devIndex int, region string, location LatLon) 
 		Lat:                 location.Lat,
 		Lon:                 location.Lon,
 		Battery:             r.Float32() * 100,
-		Humidity:            uint16(r.Uint32()) % uint16(100),
+		Humidity:            humidity,
 		Temperature:         int16(r.Int31()) % int16(100),
 		HydraulicPressure:   1000 + r.Float32()*1000,
 		AtmosphericPressure: 101.3 + r.Float32()*100,
