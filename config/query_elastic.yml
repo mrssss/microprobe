@@ -1,0 +1,6 @@
+client:
+  type: "elastic_search"
+  result: "res.csv"
+  context:
+    addresses:
+      - "http://localhost:9200"

@@ -47,13 +47,19 @@ func main() {
 	src, err := source.NewSource(&bp.Source, event, &wg)
 	cli, err := client.NewClient(&bp.Client, &wg)
 
-	go dest.Process()
-
-	for i := 0; i < 10; i++ {
-		go src.Process()
+	if dest != nil {
+		go dest.Process()
+	}
+	if src != nil {
+		for i := 0; i < 10; i++ {
+			go src.Process()
+		}
 	}
 	// For avoiding index is not created issue
 	time.Sleep(5 * time.Second)
-	go cli.Process()
+	if cli != nil {
+		go cli.Process()
+	}
+	time.Sleep(5 * time.Second)
 	wg.Wait()
 }

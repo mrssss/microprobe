@@ -81,7 +81,6 @@ func (esc *ElasticSearchClient) Process() {
 		if err != nil {
 			log.Fatalf("Error getting response: %s", err)
 		}
-		defer res.Body.Close()
 
 		if res.IsError() {
 			var e map[string]interface{}
@@ -100,6 +99,8 @@ func (esc *ElasticSearchClient) Process() {
 		if err := json.NewDecoder(res.Body).Decode(&r); err != nil {
 			log.Fatalf("Error parsing the response body: %s", err)
 		}
+
+		res.Body.Close()
 		// Print the response status, number of results, and request duration.
 		//log.Printf(
 		//	"[%s] %d hits; took: %dms",
@@ -119,6 +120,7 @@ func (esc *ElasticSearchClient) Process() {
 				latestDocId = iDocId
 			}
 		}
+		time.Sleep(20 * time.Millisecond)
 	}
 	//for {
 	//	cli.Search
