@@ -59,9 +59,18 @@ func (esc *ElasticSearchClient) Process() {
 		query := map[string]interface{}{
 			"query": map[string]interface{}{
 				"bool": map[string]interface{}{
-					"must": map[string]interface{}{
-						"match": map[string]interface{}{
-							"region": "alert",
+					"must": []interface{}{
+						0: map[string]interface{}{
+							"match": map[string]interface{}{
+								"region": "alert",
+							}},
+						1: map[string]interface{}{
+							"range": map[string]interface{}{
+								"timestamp": map[string]string{
+									"gte": "now-1m",
+									"lt":  "now",
+								},
+							},
 						},
 					},
 				},
@@ -81,6 +90,7 @@ func (esc *ElasticSearchClient) Process() {
 		if err != nil {
 			log.Fatalf("Error getting response: %s", err)
 		}
+		defer res.Body.Close()
 
 		if res.IsError() {
 			var e map[string]interface{}
@@ -100,7 +110,6 @@ func (esc *ElasticSearchClient) Process() {
 			log.Fatalf("Error parsing the response body: %s", err)
 		}
 
-		res.Body.Close()
 		// Print the response status, number of results, and request duration.
 		//log.Printf(
 		//	"[%s] %d hits; took: %dms",
