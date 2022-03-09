@@ -2,10 +2,9 @@ package file
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"github.com/elastic/go-elasticsearch/v8"
-	"github.com/elastic/go-elasticsearch/v8/esapi"
+	"github.com/elastic/go-elasticsearch/v8/esutil"
 	"github.com/mrssss/microprobe/blueprint"
 	"github.com/mrssss/microprobe/sink"
 	"log"
@@ -36,55 +35,65 @@ func (es *ElasticSearchStorage) Process() {
 
 	client, err := elasticsearch.NewClient(cfg)
 
+	bi, err := esutil.NewBulkIndexer(esutil.BulkIndexerConfig{
+		Index:         "test",                // The default index name
+		Client:        client,                // The Elasticsearch client
+		NumWorkers:    10,                    // The number of worker goroutines
+		FlushBytes:    int(1024),             // The flush threshold in bytes
+		FlushInterval: 10 * time.Millisecond, // The periodic flush interval
+	})
+	defer bi.Close(context.Background())
+
 	if err != nil {
 		fmt.Printf("")
 		os.Exit(1)
 	}
 
-	var ind uint64 = 0
-	var wg sync.WaitGroup
+	var ind int = 0
+	var countSuccessful uint64 = 0
+	cur_time := time.Now()
+	start_time := time.Now()
 Stop:
 	for {
 		select {
 		case res := <-es.event:
 			event := strings.TrimSpace(res)
 			if event != "" {
+				err = bi.Add(
+					context.Background(),
+					esutil.BulkIndexerItem{
+						// Action field configures the operation to perform (index, create, delete, update)
+						Action: "index",
 
-				go func(docId uint64, e string) {
-					wg.Add(1)
-					defer wg.Done()
+						// DocumentID is the (optional) document ID
+						DocumentID: strconv.Itoa(ind),
 
-					log.Printf("indexing document ID=%d", docId)
-					req := esapi.IndexRequest{
-						Index:      "test",
-						DocumentID: strconv.FormatUint(docId, 10),
-						Body:       strings.NewReader(e),
-						Refresh:    "true",
-					}
-					// Perform the request with the client.
-					res, err := req.Do(context.Background(), client)
-					if err != nil {
-						log.Fatalf("Error getting response: %s", err)
-					}
-					defer res.Body.Close()
+						// Body is an `io.Reader` with the payload
+						Body: strings.NewReader(event),
 
-					if res.IsError() {
-						log.Printf("[%s] Error indexing document ID=%d", res.Status(), ind)
-					} else {
-						// Deserialize the response into a map.
-						var r map[string]interface{}
-						if err := json.NewDecoder(res.Body).Decode(&r); err != nil {
-							log.Printf("Error parsing the response body: %s", err)
-						} else {
-							// Print the response status and indexed document version.
-							//log.Printf("[%s] %s; version=%d", res.Status(), r["result"], int(r["_version"].(float64)))
-						}
-					}
-				}(atomic.AddUint64(&ind, 1), event)
+						// OnSuccess is called for each successful operation
+						OnSuccess: func(ctx context.Context, item esutil.BulkIndexerItem, res esutil.BulkIndexerResponseItem) {
+							atomic.AddUint64(&countSuccessful, 1)
+						},
+
+						// OnFailure is called for each failed operation
+						OnFailure: func(ctx context.Context, item esutil.BulkIndexerItem, res esutil.BulkIndexerResponseItem, err error) {
+							if err != nil {
+								log.Printf("ERROR: %s", err)
+							} else {
+								log.Printf("ERROR: %s: %s", res.Error.Type, res.Error.Reason)
+							}
+						},
+					},
+				)
+				ind++
+			}
+			if time.Now().Sub(cur_time).Seconds() >= 1 {
+				cur_time = time.Now()
+				log.Printf("index %d events in %f milliseconds", atomic.LoadUint64(&countSuccessful), float64(time.Now().Sub(start_time).Milliseconds()))
 			}
 		case <-time.After(1 * time.Second):
 			if !es.running {
-				wg.Wait()
 				break Stop
 			}
 		}

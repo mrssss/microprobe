@@ -78,6 +78,7 @@ func (ms *MetricStorage) Process() {
 	defer ms.done.Done()
 	ms.running = true
 	count := 0
+	//cur_time := time.Now()
 	for {
 		locs := GenerateLocations(ms.totalEntities, true)
 		mts := GenerateMetrics(ms.totalEntities, locs)
@@ -89,8 +90,10 @@ func (ms *MetricStorage) Process() {
 			}
 			ms.event <- string(data)
 		}
-		log.Printf("Generate %d events.\n", count)
-		time.Sleep(1000 * time.Millisecond)
+		//if time.Now().Sub(cur_time).Seconds() >= 1 {
+		//	cur_time = time.Now()
+		//	//log.Printf("Generate %d events.\n", count)
+		//}
 	}
 }
 

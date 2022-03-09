@@ -2,7 +2,7 @@ source:
   name: "Metric"
   type: "metric"
   settings:
-    total_entities: 50
+    total_entities: 10000
 
 sink:
   type: "elastic_search"

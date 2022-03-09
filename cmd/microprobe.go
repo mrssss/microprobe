@@ -46,11 +46,13 @@ func main() {
 	dest, err := sink.NewSink(&bp.Sink, event, &wg)
 	src, err := source.NewSource(&bp.Source, event, &wg)
 	cli, err := client.NewClient(&bp.Client, &wg)
-	for i := 0; i < 10; i++ {
-		go dest.Process()
-	}
 
-	go src.Process()
+	go dest.Process()
+
+	for i := 0; i < 10; i++ {
+		go src.Process()
+	}
+	// For avoiding index is not created issue
 	time.Sleep(5 * time.Second)
 	go cli.Process()
 	wg.Wait()
