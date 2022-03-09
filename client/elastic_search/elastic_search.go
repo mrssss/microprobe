@@ -124,7 +124,7 @@ func (esc *ElasticSearchClient) Process() {
 			docId, _ := hit.(map[string]interface{})["_id"].(string)
 			iDocId, _ := strconv.Atoi(docId)
 			if iDocId > latestDocId {
-				l := fmt.Sprintf("%s,%s,%s\n", time.Now().String(), hit.(map[string]interface{})["_source"].(map[string]interface{})["timestamp"], hit.(map[string]interface{})["_source"].(map[string]interface{})["devicename"])
+				l := fmt.Sprintf("%s,%s,%s,%d\n", time.Now().String(), hit.(map[string]interface{})["_source"].(map[string]interface{})["timestamp"], hit.(map[string]interface{})["_source"].(map[string]interface{})["devicename"], hit.(map[string]interface{})["_source"].(map[string]interface{})["humidity"].(int))
 				out.WriteString(l)
 				out.Flush()
 				log.Printf(l)
