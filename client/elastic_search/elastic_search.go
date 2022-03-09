@@ -9,6 +9,8 @@ import (
 	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/mrssss/microprobe/blueprint"
 	"github.com/mrssss/microprobe/client"
+	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"strconv"
@@ -109,6 +111,7 @@ func (esc *ElasticSearchClient) Process() {
 			log.Fatalf("Error parsing the response body: %s", err)
 		}
 		res.Body.Close()
+		io.Copy(ioutil.Discard, res.Body)
 		// Print the response status, number of results, and request duration.
 		//log.Printf(
 		//	"[%s] %d hits; took: %dms",
