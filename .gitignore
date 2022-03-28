@@ -16,3 +16,4 @@
 .idea/
 *.json
 *.csv
+cmd/cmd
