@@ -6,9 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/elastic/go-elasticsearch/v8"
-	"github.com/mrssss/microprobe/blueprint"
-	"github.com/mrssss/microprobe/client"
 	"io"
 	"io/ioutil"
 	"log"
@@ -16,6 +13,10 @@ import (
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/elastic/go-elasticsearch/v8"
+	"github.com/mrssss/microprobe/blueprint"
+	"github.com/mrssss/microprobe/client"
 )
 
 type ElasticSearchClient struct {
@@ -26,6 +27,18 @@ type ElasticSearchClient struct {
 }
 
 var latestDocId = 0
+
+func toDatetime(str string) (*time.Time, error) {
+	//layout := "2006-01-02T15:04:05.999999-07:00"
+	t, err := time.Parse(time.RFC3339, str)
+
+	if err != nil {
+		return nil, err
+	}
+	return &t, nil
+}
+
+var start_time = time.Now().Add(-1 * time.Minute)
 
 func (esc *ElasticSearchClient) Process() {
 	esc.running = true
@@ -64,7 +77,7 @@ func (esc *ElasticSearchClient) Process() {
 					"must": map[string]interface{}{
 						"range": map[string]interface{}{
 							"timestamp": map[string]string{
-								"gte": "now-1m",
+								"gte": start_time.Format(time.RFC3339),
 								"lt":  "now",
 							},
 						},
@@ -83,6 +96,8 @@ func (esc *ElasticSearchClient) Process() {
 			log.Fatalf("Error encoding query: %s", err)
 		}
 		// Perform the search request.
+
+		query_start := time.Now()
 		res, err := cli.Search(
 			cli.Search.WithContext(context.Background()),
 			cli.Search.WithIndex("test"),
@@ -90,6 +105,7 @@ func (esc *ElasticSearchClient) Process() {
 			cli.Search.WithTrackTotalHits(true),
 			cli.Search.WithPretty(),
 		)
+		query_response_time := time.Now().Sub(query_start)
 		if err != nil {
 			log.Fatalf("Error getting response: %s", err)
 		}
@@ -125,14 +141,31 @@ func (esc *ElasticSearchClient) Process() {
 			docId, _ := hit.(map[string]interface{})["_id"].(string)
 			iDocId, _ := strconv.Atoi(docId)
 			if iDocId > latestDocId {
-				l := fmt.Sprintf("%s,%s,%s,%f\n", time.Now().String(), hit.(map[string]interface{})["_source"].(map[string]interface{})["timestamp"], hit.(map[string]interface{})["_source"].(map[string]interface{})["devicename"], hit.(map[string]interface{})["_source"].(map[string]interface{})["humidity"].(float64))
+				t0, err := toDatetime(hit.(map[string]interface{})["_source"].(map[string]interface{})["timestamp"].(string))
+				if err != nil {
+					log.Printf("failed to convert ", err)
+					return
+				}
+
+				if start_time.Before(*t0) {
+					start_time = *t0
+				}
+
+				t1 := time.Now()
+
+				l := fmt.Sprintf("%s,%s,%s,%s,%s,%f\n",
+					query_response_time,
+					t1.Sub(*t0),
+					time.Now().String(),
+					hit.(map[string]interface{})["_source"].(map[string]interface{})["timestamp"],
+					hit.(map[string]interface{})["_source"].(map[string]interface{})["devicename"],
+					hit.(map[string]interface{})["_source"].(map[string]interface{})["humidity"].(float64))
 				out.WriteString(l)
 				out.Flush()
 				log.Printf(l)
 				latestDocId = iDocId
 			}
 		}
-		time.Sleep(20 * time.Millisecond)
 	}
 	//for {
 	//	cli.Search
